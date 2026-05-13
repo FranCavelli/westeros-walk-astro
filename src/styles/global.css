@@ -430,7 +430,7 @@ body {
 
 /* Field controls */
 .field { display: block; margin-bottom: 14px; font-size: 14px; }
-.field > span {
+.field > span, .field-label {
   font-family: 'Cinzel', serif;
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -591,19 +591,117 @@ body {
 .hidden { display: none !important; }
 
 /* Settings dialog */
-.settings, .traveler-dialog {
+.settings, .traveler-dialog, .city-dialog {
   border: 1px solid var(--gold);
   border-radius: 6px;
   background: #2a1a10;
   color: var(--parchment);
   font-family: inherit;
   padding: 0;
-  max-width: 460px;
+  max-width: 520px;
   width: 92%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
 }
-.settings::backdrop, .traveler-dialog::backdrop { background: rgba(0,0,0,0.7); }
-.settings form, .traveler-dialog form { padding: 22px; }
+.settings::backdrop, .traveler-dialog::backdrop, .city-dialog::backdrop { background: rgba(0,0,0,0.75); }
+.settings form, .traveler-dialog form, .city-dialog form { padding: 22px; }
+
+/* City info modal */
+.city-detail-card { color: var(--parchment); }
+.city-detail-card .city-photo {
+  width: calc(100% + 44px);
+  margin: -22px -22px 14px;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+  border-bottom: 2px solid var(--gold);
+  background: #1a120b;
+}
+.city-detail-card .city-photo-placeholder {
+  width: calc(100% + 44px);
+  margin: -22px -22px 14px;
+  height: 140px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #3a2410, #1a120b);
+  border-bottom: 2px solid var(--gold);
+  font-family: 'Cinzel', serif;
+  color: var(--gold-bright);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.city-detail-card h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  color: var(--parchment-light);
+  margin: 0 0 4px;
+  letter-spacing: 0.05em;
+}
+.city-detail-card .city-region {
+  font-style: italic;
+  color: var(--parchment-dark);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.city-detail-card .city-status {
+  display: inline-block;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.city-detail-card .city-status.pending  { background: rgba(184,137,58,0.15); color: var(--gold-bright); border: 1px solid var(--gold); }
+.city-detail-card .city-status.current  { background: rgba(106,191,106,0.15); color: #a8e6a8; border: 1px solid #6abf6a; }
+.city-detail-card .city-status.visited  { background: rgba(110,20,20,0.18); color: #e8a0a0; border: 1px solid var(--blood); }
+.city-detail-card .city-desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--parchment);
+  margin: 0 0 14px;
+}
+.city-detail-card .city-here {
+  border-top: 1px dashed rgba(184,137,58,0.4);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+.city-detail-card .city-here h4 {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.city-detail-card .city-here-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.city-detail-card .city-here-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--parchment-light);
+}
+.city-detail-card .city-here-list .avatar-medallion { width: 28px; height: 28px; font-size: 13px; }
+.city-detail-card .city-here-list .here-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+.city-detail-card .city-here-list .here-tag.at-city  { background: rgba(184,137,58,0.25); color: var(--gold-bright); }
+.city-detail-card .city-here-list .here-tag.heading  { background: rgba(110,20,20,0.25); color: #e8a0a0; }
+.city-detail-card .city-empty { color: var(--parchment-dark); font-style: italic; font-size: 13px; }
 .settings h3 {
   font-family: 'Cinzel', serif;
   font-size: 16px;

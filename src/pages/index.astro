@@ -113,12 +113,12 @@ import '../styles/global.css';
       <small>Solo números. Compartí el mismo código con tus amigos para verse en el mapa.</small>
     </label>
 
-    <label class="field">
-      <span>Personaje</span>
+    <div class="field">
+      <span class="field-label">Personaje</span>
       <div class="saga-filter" id="sagaFilter"></div>
       <div class="house-filter" id="houseFilter"></div>
       <div class="character-grid" id="characterGrid"></div>
-    </label>
+    </div>
 
     <div class="dialog-actions">
       <button type="submit" class="primary-btn">Empezar el viaje</button>
@@ -129,6 +129,15 @@ import '../styles/global.css';
 <dialog id="travelerDialog" class="traveler-dialog">
   <form method="dialog">
     <div id="travelerDetail"></div>
+    <div class="dialog-actions">
+      <button type="submit" class="secondary-btn">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cityDialog" class="city-dialog">
+  <form method="dialog">
+    <div id="cityDetail"></div>
     <div class="dialog-actions">
       <button type="submit" class="secondary-btn">Cerrar</button>
     </div>

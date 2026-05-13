@@ -42,29 +42,40 @@ function saveState() { localStorage.setItem("westeros-walk", JSON.stringify(stat
 
 const state = loadState();
 if (!state.player.id) state.player.id = crypto.randomUUID();
-if (!state.room) state.room = DEFAULT_ROOM;
+
+const genRoomCode = () => String(Math.floor(100000 + Math.random() * 900000));
+if (!state.room) state.room = genRoomCode();
 
 // =========================================================
 //  Fotos: precarga con fallback a sigilo
 // =========================================================
 const loadedPhotos = new Set();
+const loadedCityPhotos = new Set();
+
+function preloadImage(url, set, key) {
+  return new Promise((resolve) => {
+    if (!url) return resolve();
+    const img = new Image();
+    img.onload = () => { set.add(key); resolve(); };
+    img.onerror = () => resolve();
+    img.src = url;
+  });
+}
+
 function preloadPhotos() {
-  return Promise.all(
-    CHARACTERS.filter((c) => c.photo).map(
-      (c) =>
-        new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => { loadedPhotos.add(c.id); resolve(); };
-          img.onerror = () => resolve();
-          img.src = c.photo;
-        })
-    )
-  );
+  return Promise.all([
+    ...CHARACTERS.filter((c) => c.photo).map((c) => preloadImage(c.photo, loadedPhotos, c.id)),
+    ...ROUTE.filter((c) => c.photo).map((c) => preloadImage(c.photo, loadedCityPhotos, c.id)),
+  ]);
 }
 const hasPhoto = (charId) => loadedPhotos.has(charId);
 const photoFor = (charId) => {
   const c = charById(charId);
   return hasPhoto(charId) ? c.photo : null;
+};
+const cityPhotoFor = (cityId) => {
+  const c = ROUTE.find((x) => x.id === cityId);
+  return c && loadedCityPhotos.has(cityId) ? c.photo : null;
 };
 
 // =========================================================
@@ -205,9 +216,62 @@ function buildMap() {
   map.querySelectorAll(".landmark").forEach((g) => {
     g.addEventListener("click", () => {
       const i = parseInt(g.dataset.city);
-      log(`Mirás hacia ${ROUTE[i].name}…`);
+      showCityDetail(i);
     });
   });
+}
+
+function showCityDetail(idx) {
+  const city = ROUTE[idx];
+  const wKmMine = westerosKm();
+  const mineSeg = segmentAt(wKmMine);
+  const wasReached = wKmMine >= city.km;
+  const mineNext = mineSeg.next;
+  const mineOnCity = mineSeg.idx === idx && (!mineNext || (wKmMine - city.km) < (mineNext.km - city.km) * 0.05);
+  const mineHeading = mineNext && mineSeg.idx + 1 === idx;
+
+  let statusClass = "pending", statusText = "Aún no visitada";
+  if (mineOnCity) { statusClass = "current"; statusText = "Estás acá"; }
+  else if (wasReached) { statusClass = "visited"; statusText = "Ya pasaste por acá"; }
+
+  // Quiénes están acá o yendo
+  const here = [];
+  if (mineOnCity) here.push({ atCity: true,  name: state.player.name || "Vos", characterId: state.player.characterId, isMe: true });
+  else if (mineHeading) here.push({ atCity: false, name: state.player.name || "Vos", characterId: state.player.characterId, isMe: true });
+
+  Object.values(otherPlayers).forEach((p) => {
+    if (p.cityIdx === idx) here.push({ atCity: true,  name: p.name, characterId: p.characterId });
+    else if (p.cityIdx + 1 === idx) here.push({ atCity: false, name: p.name, characterId: p.characterId });
+  });
+
+  const photo = cityPhotoFor(city.id);
+  const photoBlock = photo
+    ? `<img class="city-photo" src="${photo}" alt="${escapeHtml(city.name)}" />`
+    : `<div class="city-photo-placeholder">${escapeHtml(city.name)}</div>`;
+
+  const hereList = here.length
+    ? `<ul class="city-here-list">${here.map((p) => `
+        <li>
+          ${medallionHTML(p.characterId, "")}
+          <span>${escapeHtml(p.name)}${p.isMe ? " (vos)" : ""}</span>
+          <span class="here-tag ${p.atCity ? "at-city" : "heading"}">${p.atCity ? "Aquí" : "En camino"}</span>
+        </li>`).join("")}</ul>`
+    : `<p class="city-empty">Nadie acá ni en camino…</p>`;
+
+  $("cityDetail").innerHTML = `
+    <div class="city-detail-card">
+      ${photoBlock}
+      <h3>${escapeHtml(city.name)}</h3>
+      <p class="city-region">${escapeHtml(city.region)}</p>
+      <span class="city-status ${statusClass}">${statusText}</span>
+      <p class="city-desc">${escapeHtml(city.desc || "")}</p>
+      <div class="city-here">
+        <h4>Quiénes están acá</h4>
+        ${hereList}
+      </div>
+    </div>
+  `;
+  $("cityDialog").showModal();
 }
 
 function renderMyTravelerAvatar() {
@@ -659,7 +723,7 @@ let activeHouse = "Todas";
 function buildOnboarding() {
   selectedCharId = state.player.characterId || CHARACTERS[0].id;
   $("nameInput").value = state.player.name || "";
-  $("roomInput").value = state.room && /^\d+$/.test(state.room) ? state.room : "";
+  $("roomInput").value = state.room && /^\d+$/.test(state.room) ? state.room : genRoomCode();
   buildSagaFilter();
   buildHouseFilter();
   buildCharacterGrid();
@@ -732,7 +796,7 @@ function wire() {
     const name = $("nameInput").value.trim();
     if (!name || !selectedCharId) { e.preventDefault(); return; }
     const roomInputVal = ($("roomInput").value || "").replace(/[^0-9]/g, "");
-    const newRoom = roomInputVal || DEFAULT_ROOM;
+    const newRoom = roomInputVal || genRoomCode();
     const roomChanged = newRoom !== state.room;
     state.player.name = name;
     state.player.characterId = selectedCharId;
