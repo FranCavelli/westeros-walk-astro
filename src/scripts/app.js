@@ -260,6 +260,7 @@ function showCityDetail(idx) {
 
   $("cityDetail").innerHTML = `
     <div class="city-detail-card">
+      <button type="submit" class="city-close-btn" aria-label="Cerrar">×</button>
       ${photoBlock}
       <h3>${escapeHtml(city.name)}</h3>
       <p class="city-region">${escapeHtml(city.region)}</p>
@@ -425,6 +426,7 @@ const Tracking = {
   stepHandler: null, gpsWatchId: null,
   lastPeakT: 0, lowFlag: true, lastGps: null,
   locked: false,
+  wakeLock: null,
 
   async startAll(autoOnly = false) {
     this.locked = !!state.detectedMode;
@@ -432,15 +434,32 @@ const Tracking = {
       if (state.detectedMode === "steps") await this.startSteps(autoOnly);
       else if (state.detectedMode === "gps") this.startGps();
       updateLiveBadge();
+      this.requestWakeLock();
       return;
     }
     const gpsOk = this.startGps();
     const stepsOk = await this.startSteps(autoOnly);
     if (!gpsOk && !stepsOk) setBanner("error", "No pude activar ni GPS ni podómetro.");
     updateLiveBadge();
+    this.requestWakeLock();
   },
 
-  stopAll() { this.stopSteps(); this.stopGps(); updateLiveBadge(); },
+  stopAll() { this.stopSteps(); this.stopGps(); this.releaseWakeLock(); updateLiveBadge(); },
+
+  async requestWakeLock() {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      this.wakeLock = await navigator.wakeLock.request("screen");
+      this.wakeLock.addEventListener("release", () => { this.wakeLock = null; });
+    } catch {}
+  },
+
+  releaseWakeLock() {
+    if (this.wakeLock) {
+      this.wakeLock.release().catch(() => {});
+      this.wakeLock = null;
+    }
+  },
 
   async startSteps(autoOnly = false) {
     if (typeof DeviceMotionEvent === "undefined") return false;
@@ -851,6 +870,13 @@ function wire() {
     updateUI();
   });
 }
+
+// Re-pedir wake lock cuando el tab vuelve a estar visible
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && (Tracking.stepHandler || Tracking.gpsWatchId != null)) {
+    Tracking.requestWakeLock();
+  }
+});
 
 // =========================================================
 //  Boot
