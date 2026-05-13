@@ -270,7 +270,7 @@ function showCityDetail(idx) {
 
   $("cityDetail").innerHTML = `
     <div class="city-detail-card">
-      <button type="submit" class="city-close-btn" aria-label="Cerrar">×</button>
+      <button type="button" class="city-close-btn" id="cityCloseBtn" aria-label="Cerrar">×</button>
       ${photoBlock}
       <h3>${escapeHtml(city.name)}</h3>
       <p class="city-region">${escapeHtml(city.region)}</p>
@@ -282,7 +282,9 @@ function showCityDetail(idx) {
       </div>
     </div>
   `;
-  $("cityDialog").showModal();
+  const dlg = $("cityDialog");
+  $("cityCloseBtn").addEventListener("click", () => dlg.close());
+  dlg.showModal();
 }
 
 function renderMyTravelerAvatar() {
@@ -859,6 +861,11 @@ function wire() {
     if (next) showCityDetail(idx + 1);
   });
 
+  // Click en backdrop del drawer → cierra
+  $("cityDialog").addEventListener("click", (e) => {
+    if (e.target === $("cityDialog")) $("cityDialog").close();
+  });
+
   $("enableMotionBtn").addEventListener("click", async () => {
     $("trackingHint").classList.add("hidden");
     const ok = await Tracking.startSteps(false);
@@ -876,6 +883,22 @@ function wire() {
   });
 
   $("redetectBtn").addEventListener("click", () => Tracking.redetect());
+
+  $("importStepsBtn").addEventListener("click", () => {
+    const n = parseInt($("importStepsInput").value);
+    if (!n || n <= 0) {
+      setBanner("error", "Ingresá un número válido de pasos.", 3000);
+      return;
+    }
+    const meters = n * (FIXED.strideCm / 100);
+    state.realMeters += meters;
+    saveState();
+    log(`Importó ${n.toLocaleString("es-AR")} pasos (${(meters/1000).toFixed(2)} km)`);
+    $("importStepsInput").value = "";
+    setBanner("connected", `${n.toLocaleString("es-AR")} pasos importados`, 3000);
+    updateUI();
+  });
+
   $("changeCharBtn").addEventListener("click", () => {
     dlg.close();
     buildOnboarding();

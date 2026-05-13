@@ -166,6 +166,18 @@ import '../styles/global.css';
       <small>Cambiá la sala desde "Cambiar personaje".</small>
     </label>
 
+    <label class="field">
+      <span>Importar pasos del día</span>
+      <div class="manual-input">
+        <input type="number" id="importStepsInput" inputmode="numeric" min="0" step="100" placeholder="ej: 8500" />
+        <button type="button" id="importStepsBtn" class="secondary-btn">Importar</button>
+      </div>
+      <small>
+        Abrí Google Fit (Android) o Salud (iOS) y copiá tu conteo de pasos del día.
+        Se suma a tu progreso.
+      </small>
+    </label>
+
     <div class="dialog-actions">
       <button type="button" id="changeCharBtn" class="ghost-btn">Cambiar personaje</button>
       <button type="button" id="resetBtn" class="danger-btn">Reiniciar viaje</button>
