@@ -159,7 +159,10 @@ body {
   font-size: 24px;
   margin: 2px 0 1px;
   color: var(--parchment-light);
+  cursor: pointer;
+  transition: color 0.15s;
 }
+.location-card h2:hover { color: var(--gold-bright); }
 .region { margin: 0; font-style: italic; color: var(--parchment-dark); font-size: 14px; }
 .next-block {
   text-align: right;
@@ -180,7 +183,10 @@ body {
   color: var(--parchment-light);
   font-family: 'Cinzel', serif;
   font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s;
 }
+.next-block strong:hover { color: var(--gold-bright); }
 .next-block .dist { color: var(--gold-bright); font-variant-numeric: tabular-nums; font-size: 13px; }
 
 /* Map */
@@ -194,6 +200,15 @@ body {
   aspect-ratio: 100/192;
   overflow: hidden;
 }
+.map-inner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+  touch-action: none;
+}
 .map-bg {
   position: absolute;
   inset: 0;
@@ -202,7 +217,10 @@ body {
   object-fit: cover;
   display: block;
   z-index: 0;
-  filter: contrast(1.02) saturate(1.05);
+  filter: contrast(1.04) saturate(1.08);
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 .map-overlay {
   position: absolute;
@@ -214,6 +232,31 @@ body {
   pointer-events: none;
 }
 .map-overlay .landmark, .map-overlay .traveler-marker.other { pointer-events: auto; }
+
+/* Controles de zoom */
+.zoom-controls {
+  position: absolute;
+  bottom: 12px; right: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zoom-controls button {
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.55);
+  color: var(--parchment-light);
+  border: 1px solid rgba(245,230,194,0.4);
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s;
+}
+.zoom-controls button:hover { background: rgba(0,0,0,0.85); }
+.zoom-controls button:active { transform: scale(0.95); }
 
 .tracking-hint {
   position: absolute;
@@ -790,39 +833,55 @@ body {
   filter: drop-shadow(0 0 0.6px rgba(0,0,0,0.7));
 }
 
-/* Landmark icons — wax-seal sobre el mapa canónico */
+/* Landmark icons — círculos con foto sobre el mapa canónico */
 .landmark { cursor: pointer; }
-.landmark .pin-base {
-  fill: #f5e6c2;
-  stroke: #2a1a08;
-  stroke-width: 0.18;
-  filter: drop-shadow(0 0.2px 0.4px rgba(0,0,0,0.4));
+.landmark .pin-glow {
+  fill: rgba(255, 235, 150, 0);
+  transition: fill 0.15s;
 }
-.landmark.visited .pin-base {
+.landmark .pin-ring {
+  fill: #f5e6c2;
+  stroke: #1a0d04;
+  stroke-width: 0.35;
+  filter: drop-shadow(0 0.3px 0.6px rgba(0,0,0,0.5));
+}
+.landmark.visited .pin-ring {
+  fill: #d9b266;
+  stroke: #c00d0d;
+  stroke-width: 0.5;
+}
+.landmark.major .pin-ring {
+  stroke-width: 0.55;
+  fill: #ffd57a;
+}
+.landmark.major.visited .pin-ring {
   fill: #ffd57a;
   stroke: #c00d0d;
-  stroke-width: 0.3;
 }
-.landmark .pin-icon { opacity: 0.95; }
-.landmark.visited .pin-icon { filter: drop-shadow(0 0 0.4px #c00d0d); }
+.landmark .pin-fallback {
+  /* SVG icon fallback cuando no hay foto */
+  transform: scale(0.85);
+}
 .landmark .city-label {
   font-family: 'Cinzel', serif;
-  font-size: 1.7px;
+  font-size: 2.1px;
   fill: #1a0d04;
   pointer-events: none;
   font-weight: 700;
   paint-order: stroke;
-  stroke: rgba(245,230,194,0.9);
-  stroke-width: 0.55px;
+  stroke: rgba(245,230,194,0.95);
+  stroke-width: 0.65px;
   stroke-linejoin: round;
   opacity: 0;
   transition: opacity 0.15s;
 }
-.landmark.major .city-label { font-size: 2.1px; opacity: 1; }
+.landmark.major .city-label { font-size: 2.6px; opacity: 1; }
 .landmark:hover .city-label { opacity: 1; }
-.landmark:hover .pin-base {
-  fill: #ffe9a0;
-  stroke-width: 0.3;
+.landmark:hover .pin-glow {
+  fill: rgba(255,235,150,0.45);
+}
+.landmark:hover .pin-ring {
+  stroke-width: 0.55;
 }
 
 /* Mi marker — "estás acá" */

@@ -175,19 +175,28 @@ function buildMap() {
 
   const landmarks = ROUTE.map((p, i) => {
     const visited = westerosKm() >= p.km ? " visited" : "";
+    const r = p.major ? 3.8 : 2.8;
     const labelAnchor = p.x > 50 ? "start" : "end";
-    const lx = labelAnchor === "start" ? 2.6 : -2.6;
+    const lx = labelAnchor === "start" ? r + 1 : -(r + 1);
+    const photo = cityPhotoFor(p.id);
+    const visual = photo
+      ? `<image href="${photo}" x="${-r * 0.92}" y="${-r * 0.92}" width="${r * 1.84}" height="${r * 1.84}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cityCircleClip)"/>`
+      : `<g class="pin-fallback">${landmarkIcon(p.type)}</g>`;
     return `
       <g class="landmark${visited}${p.major ? " major" : ""}" data-city="${i}" transform="translate(${p.x} ${p.y})">
-        <circle class="pin-base" r="${p.major ? 2.3 : 1.7}"/>
-        <g class="pin-icon">${landmarkIcon(p.type)}</g>
-        <text class="city-label" x="${lx}" y="0.6" text-anchor="${labelAnchor}">${p.name}</text>
+        <circle class="pin-glow" r="${r * 1.4}"/>
+        <circle class="pin-ring" r="${r}"/>
+        ${visual}
+        <text class="city-label" x="${lx}" y="0.8" text-anchor="${labelAnchor}">${p.name}</text>
       </g>`;
   }).join("");
 
   map.innerHTML = `
     <defs>
       <clipPath id="myAvatarClip"><circle r="2.4" cx="0" cy="0"/></clipPath>
+      <clipPath id="cityCircleClip" clipPathUnits="objectBoundingBox">
+        <circle cx="0.5" cy="0.5" r="0.5"/>
+      </clipPath>
     </defs>
 
     <path class="road" d="${roadD}" />
@@ -215,6 +224,7 @@ function buildMap() {
 
   map.querySelectorAll(".landmark").forEach((g) => {
     g.addEventListener("click", () => {
+      if (MapZoom.panMoved) return;
       const i = parseInt(g.dataset.city);
       showCityDetail(i);
     });
@@ -839,6 +849,16 @@ function wire() {
     if (v !== $("roomInput").value) $("roomInput").value = v;
   });
 
+  // Click en el nombre de la ciudad actual / próxima → abre drawer
+  $("currentPlace").addEventListener("click", () => {
+    const { idx } = segmentAt(westerosKm());
+    showCityDetail(idx);
+  });
+  $("nextPlace").addEventListener("click", () => {
+    const { idx, next } = segmentAt(westerosKm());
+    if (next) showCityDetail(idx + 1);
+  });
+
   $("enableMotionBtn").addEventListener("click", async () => {
     $("trackingHint").classList.add("hidden");
     const ok = await Tracking.startSteps(false);
@@ -871,6 +891,155 @@ function wire() {
   });
 }
 
+// =========================================================
+//  Zoom y pan del mapa (pinch + wheel + drag)
+// =========================================================
+const MapZoom = {
+  inner: null, wrap: null,
+  scale: 1, tx: 0, ty: 0,
+  minScale: 1, maxScale: 5,
+  // Touch state
+  pinchStartDist: 0, pinchStartScale: 1, pinchCenter: null,
+  panStart: null, panMoved: false,
+
+  init() {
+    this.inner = $("mapInner");
+    this.wrap = this.inner?.parentElement;
+    if (!this.inner || !this.wrap) return;
+    this.apply();
+
+    // Touch
+    this.wrap.addEventListener("touchstart", (e) => this.onTouchStart(e), { passive: false });
+    this.wrap.addEventListener("touchmove", (e) => this.onTouchMove(e), { passive: false });
+    this.wrap.addEventListener("touchend", (e) => this.onTouchEnd(e));
+
+    // Mouse wheel
+    this.wrap.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
+
+    // Mouse drag (cuando hay zoom)
+    this.wrap.addEventListener("mousedown", (e) => this.onMouseDown(e));
+    window.addEventListener("mousemove", (e) => this.onMouseMove(e));
+    window.addEventListener("mouseup", () => this.onMouseUp());
+
+    // Botones
+    $("zoomInBtn")?.addEventListener("click", () => this.zoomBy(1.5));
+    $("zoomOutBtn")?.addEventListener("click", () => this.zoomBy(1/1.5));
+    $("zoomResetBtn")?.addEventListener("click", () => this.reset());
+  },
+
+  apply() {
+    if (!this.inner) return;
+    this.clamp();
+    this.inner.style.transform = `translate(${this.tx}px, ${this.ty}px) scale(${this.scale})`;
+  },
+
+  clamp() {
+    this.scale = Math.max(this.minScale, Math.min(this.maxScale, this.scale));
+    const rect = this.wrap.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    const overW = w * (this.scale - 1);
+    const overH = h * (this.scale - 1);
+    this.tx = Math.max(-overW, Math.min(0, this.tx));
+    this.ty = Math.max(-overH, Math.min(0, this.ty));
+  },
+
+  zoomBy(factor, cx, cy) {
+    const rect = this.wrap.getBoundingClientRect();
+    if (cx == null) cx = rect.width / 2;
+    if (cy == null) cy = rect.height / 2;
+    const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * factor));
+    const realFactor = newScale / this.scale;
+    this.tx = cx - (cx - this.tx) * realFactor;
+    this.ty = cy - (cy - this.ty) * realFactor;
+    this.scale = newScale;
+    this.apply();
+  },
+
+  reset() {
+    this.scale = 1; this.tx = 0; this.ty = 0; this.apply();
+  },
+
+  onWheel(e) {
+    e.preventDefault();
+    const rect = this.wrap.getBoundingClientRect();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    this.zoomBy(factor, e.clientX - rect.left, e.clientY - rect.top);
+  },
+
+  onTouchStart(e) {
+    this.panMoved = false;
+    if (e.touches.length === 2) {
+      const [a, b] = e.touches;
+      this.pinchStartDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      this.pinchStartScale = this.scale;
+      const rect = this.wrap.getBoundingClientRect();
+      this.pinchCenter = {
+        x: (a.clientX + b.clientX) / 2 - rect.left,
+        y: (a.clientY + b.clientY) / 2 - rect.top,
+      };
+      this.pinchStartTx = this.tx;
+      this.pinchStartTy = this.ty;
+    } else if (e.touches.length === 1 && this.scale > 1.01) {
+      const t = e.touches[0];
+      this.panStart = { x: t.clientX - this.tx, y: t.clientY - this.ty };
+    }
+  },
+
+  onTouchMove(e) {
+    if (e.touches.length === 2 && this.pinchStartDist) {
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.pinchStartScale * dist / this.pinchStartDist));
+      const realFactor = newScale / this.pinchStartScale;
+      this.tx = this.pinchCenter.x - (this.pinchCenter.x - this.pinchStartTx) * realFactor;
+      this.ty = this.pinchCenter.y - (this.pinchCenter.y - this.pinchStartTy) * realFactor;
+      this.scale = newScale;
+      this.apply();
+    } else if (e.touches.length === 1 && this.panStart) {
+      const t = e.touches[0];
+      const ntx = t.clientX - this.panStart.x;
+      const nty = t.clientY - this.panStart.y;
+      if (Math.abs(ntx - this.tx) > 2 || Math.abs(nty - this.ty) > 2) {
+        this.panMoved = true;
+        e.preventDefault();
+      }
+      this.tx = ntx; this.ty = nty;
+      this.apply();
+    }
+  },
+
+  onTouchEnd(e) {
+    if (e.touches.length < 2) {
+      this.pinchStartDist = 0;
+      this.pinchCenter = null;
+    }
+    if (e.touches.length === 0) {
+      this.panStart = null;
+    }
+  },
+
+  onMouseDown(e) {
+    this.panMoved = false;
+    if (this.scale > 1.01) {
+      this.panStart = { x: e.clientX - this.tx, y: e.clientY - this.ty };
+      e.preventDefault();
+    }
+  },
+
+  onMouseMove(e) {
+    if (!this.panStart) return;
+    this.tx = e.clientX - this.panStart.x;
+    this.ty = e.clientY - this.panStart.y;
+    this.panMoved = true;
+    this.apply();
+  },
+
+  onMouseUp() {
+    this.panStart = null;
+  },
+};
+
 // Re-pedir wake lock cuando el tab vuelve a estar visible
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && (Tracking.stepHandler || Tracking.gpsWatchId != null)) {
@@ -884,6 +1053,7 @@ document.addEventListener("visibilitychange", () => {
 (async function boot() {
   await preloadPhotos();
   buildMap();
+  MapZoom.init();
   wire();
   renderMyAvatar();
   updateUI();

@@ -51,8 +51,15 @@ import '../styles/global.css';
   </section>
 
   <div class="map-wrap">
-    <img class="map-bg" src="/westeros-map.jpg" alt="" loading="eager" decoding="async" />
-    <svg id="map" class="map-overlay" viewBox="0 0 100 192" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de Poniente"></svg>
+    <div class="map-inner" id="mapInner">
+      <img class="map-bg" src="/westeros-map.jpg" alt="" loading="eager" decoding="async" />
+      <svg id="map" class="map-overlay" viewBox="0 0 100 192" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de Poniente"></svg>
+    </div>
+    <div class="zoom-controls" id="zoomControls">
+      <button type="button" id="zoomInBtn" aria-label="Acercar">＋</button>
+      <button type="button" id="zoomOutBtn" aria-label="Alejar">−</button>
+      <button type="button" id="zoomResetBtn" aria-label="Restablecer">⌖</button>
+    </div>
     <div id="trackingHint" class="tracking-hint hidden">
       <button id="enableMotionBtn" class="ghost-btn">👣 Activar podómetro</button>
     </div>
