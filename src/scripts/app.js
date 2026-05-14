@@ -228,6 +228,20 @@ function buildMap() {
       showCityDetail(i);
     });
   });
+
+  // Debug: click en zona vacía del mapa → loggea coords del viewBox
+  $("mapInner")?.parentElement?.addEventListener("click", (e) => {
+    if (MapZoom.panMoved) return;
+    if (e.target.closest(".landmark")) return;
+    if (e.target.closest(".zoom-controls")) return;
+    const pt = map.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = map.getScreenCTM();
+    if (!ctm) return;
+    const p = pt.matrixTransform(ctm.inverse());
+    console.log(`📍 viewBox click: x=${p.x.toFixed(1)} y=${p.y.toFixed(1)}`);
+  });
 }
 
 function showCityDetail(idx) {
