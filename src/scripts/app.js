@@ -167,6 +167,65 @@ function landmarkIcon(type) {
 }
 
 // =========================================================
+//  Modo calibración — arrastrar pines para fijar coords.
+//  Activar: localStorage.setItem("krCal", "1") y recargar (o ?calibrate en la URL).
+//  Al terminar de arrastrar: krDump() en la consola → lista lista para pegar en route.js
+// =========================================================
+const CALIBRATE = (() => {
+  try {
+    return localStorage.getItem("krCal") === "1" || location.search.includes("calibrate");
+  } catch { return false; }
+})();
+const calCoords = {};
+
+function svgViewboxPoint(map, clientX, clientY) {
+  const pt = map.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  const ctm = map.getScreenCTM();
+  if (!ctm) return null;
+  return pt.matrixTransform(ctm.inverse());
+}
+
+function enableCalibration() {
+  const map = $("map");
+  let dragging = null;
+  map.querySelectorAll(".landmark").forEach((g) => {
+    g.style.cursor = "grab";
+    g.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      dragging = g;
+      g.style.cursor = "grabbing";
+      try { g.setPointerCapture(e.pointerId); } catch {}
+    });
+    g.addEventListener("pointermove", (e) => {
+      if (dragging !== g) return;
+      const p = svgViewboxPoint(map, e.clientX, e.clientY);
+      if (!p) return;
+      const x = Math.round(p.x), y = Math.round(p.y);
+      g.setAttribute("transform", `translate(${x} ${y})`);
+      calCoords[ROUTE[+g.dataset.city].id] = { x, y };
+    });
+    g.addEventListener("pointerup", () => {
+      if (dragging !== g) return;
+      g.style.cursor = "grab";
+      const c = calCoords[ROUTE[+g.dataset.city].id];
+      if (c) console.log(`📍 ${ROUTE[+g.dataset.city].id} → x: ${c.x}, y: ${c.y}`);
+      dragging = null;
+    });
+  });
+  window.krDump = () => {
+    const out = ROUTE.map((p) => {
+      const c = calCoords[p.id] || { x: p.x, y: p.y };
+      return `  ${(p.id + ":").padEnd(18)} x: ${c.x}, y: ${c.y}`;
+    }).join("\n");
+    console.log(out);
+    return out;
+  };
+  console.log("%c🗺️ Modo calibración ON — arrastrá los pines. Al terminar: krDump()", "color:#d4a017;font-weight:bold;font-size:13px");
+}
+
+// =========================================================
 //  Construcción del mapa (overlay sobre el mapa canónico)
 // =========================================================
 function buildMap() {
@@ -223,11 +282,14 @@ function buildMap() {
 
   map.querySelectorAll(".landmark").forEach((g) => {
     g.addEventListener("click", () => {
+      if (CALIBRATE) return;
       if (MapZoom.panMoved) return;
       const i = parseInt(g.dataset.city);
       showCityDetail(i);
     });
   });
+
+  if (CALIBRATE) enableCalibration();
 
   // Debug: click en zona vacía del mapa → loggea coords del viewBox
   $("mapInner")?.parentElement?.addEventListener("click", (e) => {
