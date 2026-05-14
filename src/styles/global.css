@@ -956,19 +956,25 @@ body {
 }
 .landmark .city-label {
   font-family: 'Cinzel', serif;
-  font-size: 2.1px;
+  font-size: 1.6px;
   fill: #1a0d04;
   pointer-events: none;
-  font-weight: 700;
+  font-weight: 600;
   paint-order: stroke;
   stroke: rgba(245,230,194,0.95);
-  stroke-width: 0.65px;
+  stroke-width: 0.5px;
   stroke-linejoin: round;
-  opacity: 0;
-  transition: opacity 0.15s;
+  opacity: 1;
 }
-.landmark.major .city-label { font-size: 2.6px; opacity: 1; }
-.landmark:hover .city-label { opacity: 1; }
+.landmark.major .city-label {
+  font-size: 2.4px;
+  font-weight: 700;
+  stroke-width: 0.6px;
+}
+.landmark:hover .city-label {
+  font-size: 2.2px;
+  fill: #6e1414;
+}
 .landmark:hover .pin-glow {
   fill: rgba(255,235,150,0.45);
 }

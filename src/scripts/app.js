@@ -175,19 +175,18 @@ function buildMap() {
 
   const landmarks = ROUTE.map((p, i) => {
     const visited = westerosKm() >= p.km ? " visited" : "";
-    const r = p.major ? 3.8 : 2.8;
-    const labelAnchor = p.x > 50 ? "start" : "end";
-    const lx = labelAnchor === "start" ? r + 1 : -(r + 1);
+    const r = p.major ? 3.8 : 2.6;
     const photo = cityPhotoFor(p.id);
     const visual = photo
       ? `<image href="${photo}" x="${-r * 0.92}" y="${-r * 0.92}" width="${r * 1.84}" height="${r * 1.84}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cityCircleClip)"/>`
       : `<g class="pin-fallback">${landmarkIcon(p.type)}</g>`;
+    const labelY = r + 2.1;
     return `
       <g class="landmark${visited}${p.major ? " major" : ""}" data-city="${i}" transform="translate(${p.x} ${p.y})">
         <circle class="pin-glow" r="${r * 1.4}"/>
         <circle class="pin-ring" r="${r}"/>
         ${visual}
-        <text class="city-label" x="${lx}" y="0.8" text-anchor="${labelAnchor}">${p.name}</text>
+        <text class="city-label" x="0" y="${labelY}" text-anchor="middle">${p.name}</text>
       </g>`;
   }).join("");
 
