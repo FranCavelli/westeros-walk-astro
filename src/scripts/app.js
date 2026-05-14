@@ -884,21 +884,6 @@ function wire() {
 
   $("redetectBtn").addEventListener("click", () => Tracking.redetect());
 
-  $("importStepsBtn").addEventListener("click", () => {
-    const n = parseInt($("importStepsInput").value);
-    if (!n || n <= 0) {
-      setBanner("error", "Ingresá un número válido de pasos.", 3000);
-      return;
-    }
-    const meters = n * (FIXED.strideCm / 100);
-    state.realMeters += meters;
-    saveState();
-    log(`Importó ${n.toLocaleString("es-AR")} pasos (${(meters/1000).toFixed(2)} km)`);
-    $("importStepsInput").value = "";
-    setBanner("connected", `${n.toLocaleString("es-AR")} pasos importados`, 3000);
-    updateUI();
-  });
-
   $("changeCharBtn").addEventListener("click", () => {
     dlg.close();
     buildOnboarding();
