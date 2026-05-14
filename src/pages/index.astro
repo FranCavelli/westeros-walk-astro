@@ -38,22 +38,26 @@ import '../styles/global.css';
 <main>
 
   <section class="location-card">
-    <div>
-      <p class="status-label" id="statusLabel">En camino</p>
-      <h2 id="currentPlace">Castle Black</h2>
-      <p class="region" id="currentRegion">The Wall</p>
+    <div class="loc-main">
+      <span class="loc-dot" id="locDot" title="Estás aquí" aria-hidden="true"></span>
+      <div class="loc-info">
+        <h2 id="currentPlace">Castle Black</h2>
+        <p class="region" id="currentRegion">The Wall</p>
+      </div>
     </div>
-    <div class="next-block">
-      <span class="next-label">Próximo</span>
-      <strong id="nextPlace">Last Hearth</strong>
-      <span class="dist" id="nextDistance">220 leguas</span>
+    <div class="loc-next">
+      <span class="next-arrow" aria-hidden="true">›</span>
+      <div class="loc-next-info">
+        <strong id="nextPlace">Last Hearth</strong>
+        <span class="dist" id="nextDistance">220 L</span>
+      </div>
     </div>
   </section>
 
   <div class="map-wrap">
     <div class="map-inner" id="mapInner">
       <img class="map-bg" src="/westeros-map.jpg" alt="" loading="eager" decoding="async" />
-      <svg id="map" class="map-overlay" viewBox="0 0 100 192" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de Poniente"></svg>
+      <svg id="map" class="map-overlay" viewBox="0 0 100 178" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de Poniente"></svg>
     </div>
     <div class="zoom-controls" id="zoomControls">
       <button type="button" id="zoomInBtn" aria-label="Acercar">＋</button>

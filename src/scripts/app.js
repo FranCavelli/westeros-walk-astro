@@ -361,14 +361,23 @@ function updateUI() {
 
   $("currentPlace").textContent = next ? (onCity ? here.name : `Hacia ${next.name}`) : here.name;
   $("currentRegion").textContent = here.region;
-  $("statusLabel").textContent = !next ? "Viaje completado" : onCity ? "Estás en" : "En camino";
+
+  // Estado del dot
+  const dot = $("locDot");
+  if (dot) {
+    dot.classList.remove("at-city", "heading", "finished");
+    if (!next) dot.classList.add("finished");
+    else if (onCity) dot.classList.add("at-city");
+    else dot.classList.add("heading");
+    dot.title = !next ? "Viaje completado" : onCity ? "Estás aquí" : "En camino";
+  }
 
   if (next) {
     $("nextPlace").textContent = next.name;
-    $("nextDistance").textContent = `${fmtLeguas(next.km - wKm)} leguas`;
+    $("nextDistance").textContent = `${fmtLeguas(next.km - wKm)} L`;
   } else {
     $("nextPlace").textContent = "—";
-    $("nextDistance").textContent = "fin del viaje";
+    $("nextDistance").textContent = "fin";
   }
 
   $("realKm").textContent = `${fmtKm(realKm)} km`;

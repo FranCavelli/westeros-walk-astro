@@ -139,70 +139,111 @@ body {
 .mp-banner.solo      { background: rgba(184,137,58,0.10); border-color: var(--gold); color: var(--gold-bright); }
 .mp-banner.error     { background: rgba(110,20,20,0.18); border-color: var(--blood); color: #e8a0a0; }
 
-/* Location card */
+/* Location card — barra horizontal compacta */
 .location-card {
-  margin-top: 14px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
   background:
-    linear-gradient(180deg, rgba(234,216,179,0.04), rgba(234,216,179,0.01)),
-    radial-gradient(ellipse at top, rgba(184,137,58,0.15), transparent 70%);
+    linear-gradient(180deg, rgba(234,216,179,0.05), rgba(234,216,179,0.01)),
+    radial-gradient(ellipse at left, rgba(184,137,58,0.18), transparent 70%);
   border: 1px solid rgba(184,137,58,0.35);
   border-radius: 6px;
-  padding: 14px 18px;
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: 12px;
+  min-height: 56px;
 }
-.location-card::before, .location-card::after {
-  content: ''; position: absolute;
-  width: 14px; height: 14px; border: 1px solid var(--gold);
+.loc-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
-.location-card::before { top: 6px; left: 6px; border-right: 0; border-bottom: 0; }
-.location-card::after  { bottom: 6px; right: 6px; border-left: 0; border-top: 0; }
-.status-label {
-  margin: 0;
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--gold);
+.loc-dot {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px rgba(217,178,102,0.7);
+  flex-shrink: 0;
+  transition: background 0.2s, box-shadow 0.2s;
 }
-.location-card h2 {
+.loc-dot.at-city  { background: #6abf6a; box-shadow: 0 0 10px rgba(106,191,106,0.8); }
+.loc-dot.heading  { background: #d9b266; box-shadow: 0 0 10px rgba(217,178,102,0.8); }
+.loc-dot.finished { background: #c00d0d; box-shadow: 0 0 10px rgba(192,13,13,0.8); }
+.loc-info {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.15;
+}
+.loc-info h2 {
   font-family: 'Cinzel', serif;
   font-weight: 600;
-  font-size: 24px;
-  margin: 2px 0 1px;
+  font-size: 16px;
+  margin: 0 0 2px;
   color: var(--parchment-light);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.15s;
 }
-.location-card h2:hover { color: var(--gold-bright); }
-.region { margin: 0; font-style: italic; color: var(--parchment-dark); font-size: 14px; }
-.next-block {
-  text-align: right;
+.loc-info h2:hover { color: var(--gold-bright); }
+.region {
+  margin: 0;
+  font-style: italic;
+  color: var(--parchment-dark);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loc-next {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
   border-left: 1px dashed rgba(184,137,58,0.3);
-  padding-left: 12px;
-  font-size: 13px;
+  padding-left: 10px;
+  max-width: 40%;
 }
-.next-block .next-label {
-  display: block;
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.2em;
+.next-arrow {
   color: var(--gold);
-  text-transform: uppercase;
+  font-size: 22px;
+  line-height: 1;
 }
-.next-block strong {
+.loc-next-info {
+  text-align: right;
+  line-height: 1.15;
+  min-width: 0;
+}
+.loc-next-info strong {
   display: block;
   color: var(--parchment-light);
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.next-block strong:hover { color: var(--gold-bright); }
-.next-block .dist { color: var(--gold-bright); font-variant-numeric: tabular-nums; font-size: 13px; }
+.loc-next-info strong:hover { color: var(--gold-bright); }
+.loc-next-info .dist {
+  color: var(--gold-bright);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-family: 'Cinzel', serif;
+}
+
+@media (min-width: 540px) {
+  .loc-info h2 { font-size: 20px; }
+  .region { font-size: 13px; }
+  .loc-next-info strong { font-size: 13px; }
+  .loc-next-info .dist { font-size: 13px; }
+  .location-card { padding: 12px 16px; }
+}
 
 /* Map */
 .map-wrap {
@@ -215,7 +256,7 @@ body {
     inset 0 0 0 1px rgba(245, 230, 194, 0.15),
     inset 0 0 70px rgba(40, 22, 8, 0.85);
   position: relative;
-  aspect-ratio: 100/192;
+  aspect-ratio: 1400/2486;
   overflow: hidden;
 }
 .map-inner {
