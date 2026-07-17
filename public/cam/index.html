@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Cámara Remota</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0d1117; color: #e6edf3;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
+  }
+  .wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 20px; }
+  h1 { font-size: 1.4rem; font-weight: 600; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+  label { font-size: .85rem; color: #8b949e; }
+  input[type=text] {
+    background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+    color: #e6edf3; padding: 12px; font-size: 1rem; width: 100%;
+  }
+  button {
+    border: 0; border-radius: 8px; padding: 13px; font-size: 1rem; font-weight: 600;
+    cursor: pointer; color: #fff;
+  }
+  .b-emit { background: #1f6feb; }
+  .b-view { background: #238636; }
+  .b-sec  { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; font-weight: 400; padding: 9px; font-size: .9rem; }
+  .hint { font-size: .78rem; color: #8b949e; line-height: 1.4; }
+  #status { font-size: .9rem; color: #8b949e; text-align: center; min-height: 1.2em; }
+  #status.live { color: #3fb950; font-weight: 600; }
+  #status.err  { color: #f85149; }
+  video { width: 100%; max-height: 78vh; background: #000; border-radius: 10px; }
+  .stage { width: 100%; max-width: 900px; position: relative; }
+  #unmute {
+    position: absolute; inset: 0; margin: auto; width: fit-content; height: fit-content;
+    background: rgba(0,0,0,.75); border: 1px solid #30363d; border-radius: 999px;
+    padding: 14px 22px; font-size: 1.05rem; display: none;
+  }
+  .row { display: flex; gap: 10px; width: 100%; max-width: 900px; }
+  .row button, .row select { flex: 1; }
+  select { background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3; padding: 10px; font-size: .9rem; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Pantalla inicial -->
+  <div id="home" class="card">
+    <h1>📹 Cámara Remota</h1>
+    <div>
+      <label for="key">Clave secreta (la misma en PC y teléfono)</label>
+      <input type="text" id="key" placeholder="ej: casa-fran-2026" autocomplete="off">
+    </div>
+    <button class="b-emit" id="btnEmit">📡 Emitir desde esta compu</button>
+    <button class="b-view" id="btnView">📱 Ver la cámara</button>
+    <p class="hint">La compu que emite tiene que quedar con esta pestaña abierta. En el teléfono, guardá la página en favoritos: la clave queda recordada.</p>
+  </div>
+
+  <!-- Emisor -->
+  <div id="emit" class="hidden wrap" style="padding:0">
+    <h1>📡 Emitiendo</h1>
+    <div class="stage"><video id="preview" autoplay playsinline muted></video></div>
+    <div class="row">
+      <select id="camSel" class="hidden"></select>
+      <button class="b-sec" id="btnStopEmit">Detener</button>
+    </div>
+    <div id="statusE" class="hint"></div>
+  </div>
+
+  <!-- Receptor -->
+  <div id="view" class="hidden wrap" style="padding:0">
+    <div class="stage">
+      <video id="player" autoplay playsinline muted></video>
+      <button id="unmute">🔊 Tocá para activar el sonido</button>
+    </div>
+    <div class="row">
+      <button class="b-sec" id="btnFull">⛶ Pantalla completa</button>
+      <button class="b-sec" id="btnBack">← Salir</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+</div>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+const ICE = { iceServers: [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  { urls: "turn:openrelay.metered.ca:80",  username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+]};
+
+const cleanKey = k => (k || "").toLowerCase().trim().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+const peerIdFor = k => "f4a-cam-" + k;
+
+let peer = null, stream = null, retryTimer = null, wakeLock = null;
+const viewers = new Map();
+
+// ---- Inicio ----
+$("key").value = localStorage.getItem("camKey") || "";
+
+function getKey() {
+  const k = cleanKey($("key").value);
+  if (k.length < 4) { alert("Poné una clave de al menos 4 letras/números."); return null; }
+  localStorage.setItem("camKey", k);
+  return k;
+}
+
+$("btnEmit").onclick = () => { const k = getKey(); if (k) startEmit(k); };
+$("btnView").onclick = () => { const k = getKey(); if (k) startView(k); };
+
+// Auto-arranque por URL: ?modo=emitir|ver (usa la clave guardada o ?k=...)
+const params = new URLSearchParams(location.search);
+if (params.get("k")) { $("key").value = params.get("k"); }
+const modo = params.get("modo");
+if (modo === "emitir" || modo === "ver") {
+  const k = cleanKey($("key").value);
+  if (k.length >= 4) {
+    localStorage.setItem("camKey", k);
+    (modo === "emitir" ? startEmit : startView)(k);
+  }
+}
+
+function show(id) {
+  ["home", "emit", "view"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+}
+
+async function keepAwake() {
+  try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && wakeLock !== null) keepAwake();
+  });
+}
+
+// ---- Emisor ----
+async function startEmit(key) {
+  show("emit");
+  setE("Pidiendo permiso de cámara y micrófono…");
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+  } catch (e) {
+    setE("No pude acceder a la cámara/micrófono: " + e.message, true);
+    return;
+  }
+  $("preview").srcObject = stream;
+  keepAwake();
+  listCams();
+  createEmitPeer(key);
+}
+
+function setE(msg, isErr) {
+  $("statusE").textContent = msg;
+  $("statusE").style.color = isErr ? "#f85149" : "#8b949e";
+}
+
+function createEmitPeer(key) {
+  if (peer) { try { peer.destroy(); } catch (e) {} }
+  peer = new Peer(peerIdFor(key), { config: ICE });
+
+  peer.on("open", () => setE("En vivo — esperando espectadores. Dejá esta pestaña abierta."));
+
+  peer.on("connection", conn => {
+    conn.on("open", () => {
+      const call = peer.call(conn.peer, stream);
+      viewers.set(conn.peer, { conn, call });
+      updateCount();
+    });
+    conn.on("close", () => dropViewer(conn.peer));
+    conn.on("error", () => dropViewer(conn.peer));
+  });
+
+  peer.on("disconnected", () => { setE("Reconectando con el servidor…"); try { peer.reconnect(); } catch (e) {} });
+
+  peer.on("error", err => {
+    if (err.type === "unavailable-id") {
+      setE("Ya hay otra emisión con esta clave. Reintento en 8 s… (si cerraste mal la pestaña anterior, se libera solo)", true);
+      retryTimer = setTimeout(() => createEmitPeer(key), 8000);
+    } else if (err.type !== "peer-unavailable") {
+      setE("Error de conexión (" + err.type + "). Reintento en 5 s…", true);
+      retryTimer = setTimeout(() => createEmitPeer(key), 5000);
+    }
+  });
+}
+
+function dropViewer(id) {
+  const v = viewers.get(id);
+  if (v) { try { v.call && v.call.close(); } catch (e) {} viewers.delete(id); }
+  updateCount();
+}
+
+function updateCount() {
+  const n = viewers.size;
+  setE(n === 0 ? "En vivo — esperando espectadores. Dejá esta pestaña abierta."
+              : "En vivo — " + n + (n === 1 ? " espectador conectado." : " espectadores conectados."));
+}
+
+async function listCams() {
+  try {
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+    if (cams.length < 2) return;
+    const sel = $("camSel");
+    sel.innerHTML = "";
+    cams.forEach((c, i) => {
+      const o = document.createElement("option");
+      o.value = c.deviceId; o.textContent = c.label || ("Cámara " + (i + 1));
+      sel.appendChild(o);
+    });
+    sel.classList.remove("hidden");
+    sel.onchange = async () => {
+      try {
+        const ns = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: sel.value }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        const newTrack = ns.getVideoTracks()[0];
+        const oldTrack = stream.getVideoTracks()[0];
+        viewers.forEach(v => {
+          const sender = v.call && v.call.peerConnection && v.call.peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(newTrack);
+        });
+        stream.removeTrack(oldTrack); oldTrack.stop();
+        stream.addTrack(newTrack);
+        $("preview").srcObject = stream;
+      } catch (e) { setE("No pude cambiar de cámara: " + e.message, true); }
+    };
+  } catch (e) {}
+}
+
+$("btnStopEmit").onclick = () => {
+  clearTimeout(retryTimer);
+  viewers.forEach(v => { try { v.call.close(); v.conn.close(); } catch (e) {} });
+  viewers.clear();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+  show("home");
+};
+
+// ---- Receptor ----
+let viewing = false;
+
+function startView(key) {
+  show("view");
+  viewing = true;
+  connectView(key);
+}
+
+function setS(msg, cls) {
+  $("status").textContent = msg;
+  $("status").className = cls || "";
+}
+
+function connectView(key) {
+  if (!viewing) return;
+  if (peer) { try { peer.destroy(); } catch (e) {} }
+  setS("Conectando…");
+  peer = new Peer({ config: ICE });
+
+  peer.on("open", () => {
+    const conn = peer.connect(peerIdFor(key), { reliable: true });
+    conn.on("close", () => scheduleView(key));
+    conn.on("error", () => scheduleView(key));
+  });
+
+  peer.on("call", call => {
+    call.answer();
+    call.on("stream", s => {
+      $("player").srcObject = s;
+      setS("🔴 En vivo", "live");
+      if ($("player").muted) $("unmute").style.display = "block";
+    });
+    call.on("close", () => scheduleView(key));
+  });
+
+  peer.on("error", err => {
+    if (err.type === "peer-unavailable") setS("La compu no está emitiendo. Reintentando…", "err");
+    else setS("Error (" + err.type + "). Reintentando…", "err");
+    scheduleView(key);
+  });
+
+  peer.on("disconnected", () => scheduleView(key));
+}
+
+function scheduleView(key) {
+  if (!viewing || retryTimer) return;
+  retryTimer = setTimeout(() => { retryTimer = null; connectView(key); }, 4000);
+}
+
+$("unmute").onclick = () => {
+  const p = $("player");
+  p.muted = false;
+  p.play().catch(() => {});
+  $("unmute").style.display = "none";
+};
+
+$("btnFull").onclick = () => {
+  const p = $("player");
+  if (p.requestFullscreen) p.requestFullscreen();
+  else if (p.webkitEnterFullscreen) p.webkitEnterFullscreen(); // iPhone Safari
+};
+
+$("btnBack").onclick = () => {
+  viewing = false;
+  clearTimeout(retryTimer); retryTimer = null;
+  if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+  $("player").srcObject = null;
+  show("home");
+};
+</script>
+</body>
+</html>
