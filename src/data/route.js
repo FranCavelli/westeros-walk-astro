@@ -1,7 +1,4 @@
-// Ruta canónica desde Castle Black hasta Sunspear, recorriendo Poniente.
-// 28 paradas. Total ≈ 5475 km → con scale=2 = 1 año @ 10k pasos/día.
-// Coordenadas (x,y) calibradas sobre el mapa de Behance, ancla = Castle Black.
-// viewBox 100 × 178. Para recalibrar: localStorage.setItem("krCal","1") y arrastrá los pines.
+// Ruta Castle Black → Sunspear, 28 paradas, coords calibradas sobre el mapa (viewBox 100x178)
 
 const FANDOM = (p) => `https://static.wikia.nocookie.net/gameofthrones/images/${p}/revision/latest`;
 

@@ -1,12 +1,10 @@
-// Roster de personajes: GoT + Casa del Dragón.
-// `photo`: URL externa (ThronesAPI o Wikipedia commons). Si falla, se cae al sigilo.
-// `saga`: "got" o "hotd" (algunos están en ambas).
+// Roster de personajes: GoT + Casa del Dragón. Si la foto falla se cae al sigilo.
 
 const TA = (img) => `https://thronesapi.com/assets/images/${img}`;
 const FANDOM = (path) => `https://static.wikia.nocookie.net/gameofthrones/images/${path}/revision/latest`;
 
 export const CHARACTERS = [
-  // ===== Game of Thrones =====
+  // Game of Thrones
   // Stark
   { id: "jon-snow",   name: "Jon Snow",        house: "Stark",     saga: "got",  sigil: "🐺", color: "#3a3a3a", accent: "#e8e8e8", photo: TA("jon-snow.jpg") },
   { id: "ned",        name: "Eddard Stark",    house: "Stark",     saga: "got",  sigil: "🐺", color: "#3a3a3a", accent: "#e8e8e8", photo: TA("ned-stark.jpg") },
@@ -68,7 +66,7 @@ export const CHARACTERS = [
   { id: "jaqen",      name: "Jaqen H'ghar",      house: "Hombres sin Rostro", saga: "got", sigil: "🎭", color: "#1a1a1a", accent: "#c9b27f", photo: TA("jaqen-hghar.jpg") },
   { id: "high-sparrow", name: "El Gorrión Supremo", house: "Fe de los Siete", saga: "got", sigil: "🕊️", color: "#a0a0a0", accent: "#f5e6c2", photo: TA("the-high-sparrow.jpg") },
 
-  // ===== House of the Dragon — fotos in-character desde el wiki Fandom =====
+  // House of the Dragon
   { id: "viserys-1",  name: "Viserys I",          house: "Targaryen", saga: "hotd", sigil: "🐉", color: "#2b0000", accent: "#a30000",
     photo: FANDOM("0/07/Viserys_Promo_Poster.jpg") },
   { id: "rhaenyra",   name: "Rhaenyra Targaryen", house: "Targaryen", saga: "hotd", sigil: "🐉", color: "#2b0000", accent: "#a30000",

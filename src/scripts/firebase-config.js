@@ -1,15 +1,4 @@
-// =========================================================
-//  Firebase config — leída desde .env (variables PUBLIC_*)
-// =========================================================
-//
-// Las variables se cargan de C:\...\westeros-walk-astro\.env
-// y se exponen al cliente vía Vite gracias al prefijo PUBLIC_.
-// Cambialas ahí, NO acá. El .env está en .gitignore para que no
-// suba al repo. Si publicás el proyecto, dejá .env.example como
-// referencia.
-//
-// Nota: en Firebase Web la apiKey NO es secreta — la seguridad
-// vive en las Security Rules del Realtime Database.
+// config desde .env (prefijo PUBLIC_), la seguridad real está en las rules
 
 const env = import.meta.env;
 

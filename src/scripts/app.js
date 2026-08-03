@@ -1,15 +1,10 @@
-// =========================================================
-//  The Kingsroad — Castle Black a Sunspear (Astro)
-// =========================================================
 
 import { CHARACTERS, HOUSES, SAGAS, charById } from "../data/characters.js";
 import { ROUTE, TOTAL_KM, LEGUA_KM, MAP_W, MAP_H } from "../data/route.js";
 
 import { firebaseConfig, DEFAULT_ROOM } from "./firebase-config.js";
 
-// =========================================================
-//  Parámetros fijos (desde .env, NO editables en runtime)
-// =========================================================
+// parámetros fijos desde .env
 const ENV = import.meta.env;
 const FIXED = {
   scale:       Number(ENV.PUBLIC_SCALE)       || 20,
@@ -17,9 +12,6 @@ const FIXED = {
   sensitivity: Number(ENV.PUBLIC_SENSITIVITY) || 1.10,
 };
 
-// =========================================================
-//  Estado
-// =========================================================
 const DEFAULTS = {
   realMeters: 0,
   detectedMode: null,
@@ -46,9 +38,7 @@ if (!state.player.id) state.player.id = crypto.randomUUID();
 const genRoomCode = () => String(Math.floor(100000 + Math.random() * 900000));
 if (!state.room) state.room = genRoomCode();
 
-// =========================================================
-//  Fotos: precarga con fallback a sigilo
-// =========================================================
+// precarga de fotos, si fallan queda el sigilo
 const loadedPhotos = new Set();
 const loadedCityPhotos = new Set();
 
@@ -78,9 +68,6 @@ const cityPhotoFor = (cityId) => {
   return c && loadedCityPhotos.has(cityId) ? c.photo : null;
 };
 
-// =========================================================
-//  Helpers
-// =========================================================
 const $ = (id) => document.getElementById(id);
 const fmtKm = (km) => km.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtInt = (n) => Math.round(n).toLocaleString("es-AR");
@@ -102,7 +89,7 @@ function posAt(wKm) {
   return { x: here.x + (next.x - here.x) * t, y: here.y + (next.y - here.y) * t, here, next, t };
 }
 
-// Medallón HTML (avatar pill, character grid, traveler card)
+// medallón de avatar
 function medallionHTML(charId, sizeClass = "") {
   const c = charById(charId);
   const photo = photoFor(charId);
@@ -117,9 +104,7 @@ function medallionHTML(charId, sizeClass = "") {
     </div>`;
 }
 
-// =========================================================
-//  Iconos de lugares (estilo wax-seal sobre el mapa canónico)
-// =========================================================
+// iconos de lugares sobre el mapa
 function landmarkIcon(type) {
   switch (type) {
     case "wall":     return `
@@ -166,11 +151,7 @@ function landmarkIcon(type) {
   }
 }
 
-// =========================================================
-//  Modo calibración — arrastrar pines para fijar coords.
-//  Activar: localStorage.setItem("krCal", "1") y recargar (o ?calibrate en la URL).
-//  Al terminar de arrastrar: krDump() en la consola → lista lista para pegar en route.js
-// =========================================================
+// modo calibración: krCal=1 en localStorage o ?calibrate, volcar coords con krDump()
 const CALIBRATE = (() => {
   try {
     return localStorage.getItem("krCal") === "1" || location.search.includes("calibrate");
@@ -225,9 +206,7 @@ function enableCalibration() {
   console.log("%c🗺️ Modo calibración ON — arrastrá los pines. Al terminar: krDump()", "color:#d4a017;font-weight:bold;font-size:13px");
 }
 
-// =========================================================
-//  Construcción del mapa (overlay sobre el mapa canónico)
-// =========================================================
+// overlay sobre el mapa canónico
 function buildMap() {
   const map = $("map");
   const roadD = ROUTE.map((p, i) => (i ? "L" : "M") + p.x + " " + p.y).join(" ");
@@ -371,7 +350,6 @@ function renderMyTravelerAvatar() {
   slot.innerHTML = photo
     ? `<image href="${photo}" x="-2.4" y="-2.4" width="4.8" height="4.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#myAvatarClip)"/>`
     : `<text text-anchor="middle" y="0.8" font-size="3" fill="${ch.accent}">${ch.sigil}</text>`;
-  // Label = nombre del jugador
   const label = g.querySelector(".me-label");
   label.textContent = (state.player.name || "Vos").slice(0, 14);
 }
@@ -424,9 +402,6 @@ function renderOtherTravelers() {
   });
 }
 
-// =========================================================
-//  UI updates
-// =========================================================
 function updateUI() {
   const wKm = westerosKm();
   const { here, next } = segmentAt(wKm);
@@ -437,7 +412,6 @@ function updateUI() {
   $("currentPlace").textContent = next ? (onCity ? here.name : `Hacia ${next.name}`) : here.name;
   $("currentRegion").textContent = here.region;
 
-  // Estado del dot
   const dot = $("locDot");
   if (dot) {
     dot.classList.remove("at-city", "heading", "finished");
@@ -515,9 +489,7 @@ function log(text) {
   renderJournal();
 }
 
-// =========================================================
-//  Tracking auto-detect
-// =========================================================
+// tracking: pasos o gps, se fija el primero que responde
 const Tracking = {
   stepHandler: null, gpsWatchId: null,
   lastPeakT: 0, lowFlag: true, lastGps: null,
@@ -665,9 +637,7 @@ function updateLiveBadge() {
   }
 }
 
-// =========================================================
-//  Multijugador (Firebase Realtime DB)
-// =========================================================
+// multijugador con Realtime DB
 let fb = null, myUid = null, mpUnsubscribe = null;
 let otherPlayers = {};
 let lastPushAt = 0;
@@ -760,9 +730,6 @@ async function changeRoom(newRoom) {
   setBanner("connected", `Sala cambiada a "${state.room}"`, 3000);
 }
 
-// =========================================================
-//  Lista de viajeros
-// =========================================================
 function renderTravelersList() {
   const list = $("travelersList");
   const players = Object.values(otherPlayers).sort((a, b) => (b.westerosKm || 0) - (a.westerosKm || 0));
@@ -815,9 +782,6 @@ function showTravelerDetail(uid) {
   $("travelerDialog").showModal();
 }
 
-// =========================================================
-//  Banner
-// =========================================================
 let bannerTimeout = null;
 function setBanner(kind, text, autoHideMs) {
   const b = $("mpBanner");
@@ -828,9 +792,6 @@ function setBanner(kind, text, autoHideMs) {
   if (autoHideMs) bannerTimeout = setTimeout(() => b.classList.add("hidden"), autoHideMs);
 }
 
-// =========================================================
-//  Onboarding
-// =========================================================
 let selectedCharId = null;
 let activeSaga = "todas";
 let activeHouse = "Todas";
@@ -903,9 +864,6 @@ function maybeShowOnboarding() {
   return false;
 }
 
-// =========================================================
-//  Wire
-// =========================================================
 function wire() {
   $("onboardingForm").addEventListener("submit", async (e) => {
     const name = $("nameInput").value.trim();
@@ -929,13 +887,11 @@ function wire() {
     }
   });
 
-  // Filtrar input de sala a solo dígitos
   $("roomInput").addEventListener("input", () => {
     const v = $("roomInput").value.replace(/[^0-9]/g, "");
     if (v !== $("roomInput").value) $("roomInput").value = v;
   });
 
-  // Click en el nombre de la ciudad actual / próxima → abre drawer
   $("currentPlace").addEventListener("click", () => {
     const { idx } = segmentAt(westerosKm());
     showCityDetail(idx);
@@ -945,7 +901,6 @@ function wire() {
     if (next) showCityDetail(idx + 1);
   });
 
-  // Click en backdrop del drawer → cierra
   $("cityDialog").addEventListener("click", (e) => {
     if (e.target === $("cityDialog")) $("cityDialog").close();
   });
@@ -983,14 +938,11 @@ function wire() {
   });
 }
 
-// =========================================================
-//  Zoom y pan del mapa (pinch + wheel + drag)
-// =========================================================
+// zoom y pan del mapa
 const MapZoom = {
   inner: null, wrap: null,
   scale: 1, tx: 0, ty: 0,
   minScale: 1, maxScale: 5,
-  // Touch state
   pinchStartDist: 0, pinchStartScale: 1, pinchCenter: null,
   panStart: null, panMoved: false,
 
@@ -1000,20 +952,16 @@ const MapZoom = {
     if (!this.inner || !this.wrap) return;
     this.apply();
 
-    // Touch
     this.wrap.addEventListener("touchstart", (e) => this.onTouchStart(e), { passive: false });
     this.wrap.addEventListener("touchmove", (e) => this.onTouchMove(e), { passive: false });
     this.wrap.addEventListener("touchend", (e) => this.onTouchEnd(e));
 
-    // Mouse wheel
     this.wrap.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
 
-    // Mouse drag (cuando hay zoom)
     this.wrap.addEventListener("mousedown", (e) => this.onMouseDown(e));
     window.addEventListener("mousemove", (e) => this.onMouseMove(e));
     window.addEventListener("mouseup", () => this.onMouseUp());
 
-    // Botones
     $("zoomInBtn")?.addEventListener("click", () => this.zoomBy(1.5));
     $("zoomOutBtn")?.addEventListener("click", () => this.zoomBy(1/1.5));
     $("zoomResetBtn")?.addEventListener("click", () => this.reset());
@@ -1139,9 +1087,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// =========================================================
-//  Boot
-// =========================================================
 (async function boot() {
   await preloadPhotos();
   buildMap();
